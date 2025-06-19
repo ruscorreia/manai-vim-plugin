@@ -1,0 +1,1 @@
+# manai-vim-plugin
