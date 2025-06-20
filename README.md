@@ -4,6 +4,17 @@
 
 Plugin Vim/Neovim para integração com a API ManAI, proporcionando acesso direto ao assistente de IA diretamente do seu editor.
 
+## ✨ Requisitos
+
+- Tem que ter o manai instalado   [manai](https://github.com/ruscorreia/manai.git)
+```bash
+curl -fsSL https://raw.githubusercontent.com//ruscorreia/manai/blob/main/install/install_v2.sh | bash
+```
+- Login no manai anter de abrir o vim
+```bash
+$ manai --login
+```
+
 ## ✨ Funcionalidades
 
 - Consulta rápida ao ManAI via comando `:Manai`
