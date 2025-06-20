@@ -70,6 +70,18 @@ function! s:ShowMessage(type, message)
     echohl ManAIError
     echomsg '[ManAI] ERRO: ' . a:message
     echohl None
+    
+    " Log detalhado para debug
+    if exists('g:manai_debug') && g:manai_debug
+      let log_file = expand('~/.manai_vim.log')
+      let log_msg = strftime('%Y-%m-%d %H:%M:%S') . ' - ERROR: ' . a:message
+      call writefile([log_msg], log_file, 'a')
+    endif
+  endif
+  if a:type == 'error'
+    echohl ManAIError
+    echomsg '[ManAI] ERRO: ' . a:message
+    echohl None
   elseif a:type == 'info'
     echohl ManAIStatus
     echomsg '[ManAI] ' . a:message
@@ -140,34 +152,84 @@ endfunction
 
 " Função para parsing simples de JSON
 function! s:ParseJsonResponse(json_string)
-  try
-    " Substitui caracteres de escape antes do parsing
-    let json_string = substitute(a:json_string, '\\n', '\n', 'g')
-    let json_string = substitute(json_string, '\\"', '"', 'g')
-    let json_string = substitute(json_string, '\\t', '\t', 'g')
-    
-    " Implementação mais robusta de parsing JSON
-    if exists('*json_decode')
-      return json_decode(json_string)
-    else
-      " Fallback para parsing simples melhorado
-      let result = {}
-      let answer_match = matchstr(json_string, '"answer":\s*"\zs[^"]*\ze"')
-      if !empty(answer_match)
-        let result.answer = substitute(answer_match, '\\n', '\n', 'g')
-      endif
+  if empty(a:json_string)
+    return {'error': 'Resposta vazia da API'}
+  endif
+
+  " Primeiro tenta usar json_decode nativo se disponível
+  if exists('*json_decode')
+    try
+      " Limpa caracteres problemáticos antes do parsing
+      let cleaned_json = substitute(a:json_string, '\^@', '', 'g')
+      let cleaned_json = substitute(cleaned_json, '\\"', '"', 'g')
+      let cleaned_json = substitute(cleaned_json, '\\n', '\n', 'g')
       
-      let error_match = matchstr(json_string, '"error":\s*"\zs[^"]*\ze"')
-      if !empty(error_match)
-        let result.error = error_match
-      endif
-      
-      return result
+      return json_decode(cleaned_json)
+    catch /.*/
+      call s:ShowMessage('error', 'Erro no json_decode: ' . v:exception)
+      " Fallback para parsing manual
+    endtry
+  endif
+
+  " Fallback para parsing manual melhorado
+  let result = {}
+  
+  " Tenta extrair answer mesmo em JSON malformado
+  let answer_start = stridx(a:json_string, '"answer":')
+  if answer_start > -1
+    let answer_end = stridx(a:json_string, '","', answer_start)
+    if answer_end == -1
+      let answer_end = stridx(a:json_string, '"}', answer_start)
     endif
-  catch /.*/
-    call s:ShowMessage('error', 'Erro ao processar resposta JSON: ' . v:exception)
-    return {'error': 'Resposta inválida da API'}
-  endtry
+    if answer_end > -1
+      let answer_content = strpart(a:json_string, answer_start + 9, answer_end - (answer_start + 9))
+      let result.answer = substitute(answer_content, '\\n', '\n', 'g')
+    endif
+  endif
+
+  " Tenta extrair error se answer não foi encontrado
+  if !has_key(result, 'answer')
+    let error_start = stridx(a:json_string, '"error":')
+    if error_start > -1
+      let error_end = stridx(a:json_string, '","', error_start)
+      if error_end == -1
+        let error_end = stridx(a:json_string, '"}', error_start)
+      endif
+      if error_end > -1
+        let error_content = strpart(a:json_string, error_start + 8, error_end - (error_start + 8))
+        let result.error = error_content
+      endif
+    endif
+  endif
+
+  " Se não encontrou answer nem error, tenta pegar o texto após os primeiros :
+    if !has_key(result, 'answer') && !has_key(result, 'error')
+    let first_quote = stridx(a:json_string, '"', 1)
+    let last_quote = strridx(a:json_string, '"')
+    if first_quote > 0 && last_quote > first_quote
+      let result.answer = strpart(a:json_string, first_quote + 1, last_quote - (first_quote + 1))
+      let result.answer = substitute(result.answer, '\\n', '\n', 'g')
+    endif
+  endif
+
+  return result
+endfunction
+
+function! s:CleanApiResponse(response)
+  " Remove caracteres nulos e outros problemas comuns
+  let cleaned = substitute(a:response, '\^@', '', 'g')
+  let cleaned = substitute(cleaned, '\r', '', 'g')
+  let cleaned = substitute(cleaned, '\\"', '"', 'g')
+  
+  " Tenta encontrar o JSON válido em respostas malformadas
+  let json_start = stridx(cleaned, '{')
+  let json_end = strridx(cleaned, '}')
+  
+  if json_start >= 0 && json_end > json_start
+    return strpart(cleaned, json_start, json_end - json_start + 1)
+  endif
+  
+  return cleaned
 endfunction
 
 " Função principal de requisição
@@ -203,6 +265,9 @@ function! s:ManaiAsk(query, ...)
   endif
 
   try
+    let raw_response = s:HttpRequest(url, data, headers)
+    let cleaned_response = s:CleanApiResponse(raw_response)
+    let response = s:ParseJsonResponse(cleaned_response)
     let response_json = s:HttpRequest(url, data, headers)
     let response = s:ParseJsonResponse(response_json)
 
