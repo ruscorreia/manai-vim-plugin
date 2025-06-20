@@ -51,6 +51,15 @@ function! s:SetupHighlights()
     highlight ManAIError guifg=#BF616A ctermfg=131
     highlight ManAIStatus guifg=#B48EAD ctermfg=139
   endif
+  " Novos estilos
+  highlight ManAIBorder guifg=#5E81AC ctermfg=67
+  highlight ManAITitle guifg=#EBCB8B gui=bold ctermfg=222 cterm=bold
+  highlight ManAIFooter guifg=#81A1C1 ctermfg=109
+  
+  " Aplicar aos elementos
+  syntax match ManAIBorder /^╔.*╗\|^╠.*╣\|^╚.*╝\|^║.*║/ containedin=manai
+  syntax match ManAITitle /^║.*ManAI.*║/ containedin=manai
+  syntax match ManAIFooter /^║.*Thread:.*║\|^║.*Comandos:.*║/ containedin=manai  
 endfunction
 
 " Carrega configurações do arquivo JSON
@@ -315,6 +324,12 @@ function! s:ManaiOpenWindow()
   else
     call s:CreateSplitWindow()
   endif
+
+  if has_key(response, 'threadId')
+    let g:manai_last_thread = response.threadId
+  endif
+  
+  call s:ManaiShowResponse(response.answer)  
 endfunction
 
 function! s:CreateFloatingWindow()
@@ -331,16 +346,22 @@ function! s:CreateFloatingWindow()
         \ 'row': row,
         \ 'anchor': 'NW',
         \ 'style': 'minimal',
-        \ 'border': 'single'
+        \ 'border': ['╔', '═', '╗', '║', '╝', '═', '╚', '║'],
+        \ 'title': ' ManAI ',
+        \ 'title_pos': 'center'
         \ }
 
   let buf = nvim_create_buf(v:false, v:true)
   let win = nvim_open_win(buf, v:true, opts)
 
+  " Configurações de buffer
   call setbufvar(buf, '&filetype', 'manai')
   call setbufvar(buf, '&buftype', 'nofile')
   call setbufvar(buf, '&bufhidden', 'wipe')
   call setbufvar(buf, '&swapfile', 0)
+  call setbufvar(buf, '&number', 0)
+  call setbufvar(buf, '&relativenumber', 0)
+  call setbufvar(buf, '&cursorline', 1)
 
   return buf
 endfunction
@@ -366,22 +387,37 @@ function! s:ManaiShowResponse(response)
   " Limpa o buffer
   %delete _
   
-  " Adiciona cabeçalho e resposta formatada
-  call append(0, ['# Resposta do ManAI', ''])
+  " Adiciona cabeçalho personalizado
+  let title = " ManAI - Resposta "
+  let border = repeat('═', strdisplaywidth(title) + 4)
+  call append(0, [
+        \ '╔' . border . '╗',
+        \ '║  ' . title . '  ║',
+        \ '╚' . border . '╝',
+        \ ''
+        \ ])
   
-  " Divide a resposta em linhas e adiciona ao buffer
+  " Adiciona a resposta formatada
   let lines = split(a:response, '\n')
-  for line in lines
-    call append(line('$'), '🤖 ' . line)
-  endfor
+  call extend(lines, ['', ''])
   
-  call append(line('$'), '')
+  " Adiciona rodapé informativo
+  let footer = '╔' . repeat('═', 78) . '╗'
+  let footer .= "\n║ " . strftime('%Y-%m-%d %H:%M:%S') . '  ║  '
+  let footer .= 'Thread: ' . (exists('g:manai_last_thread') ? g:manai_last_thread : 'N/A')
+  let footer .= '  ║  Comandos: :q para fechar  ║'
+  let footer .= "\n╚" . repeat('═', 78) . '╝'
   
-  " Remove linha vazia inicial
+  call append(line('$'), lines + split(footer, '\n'))
+  
+  " Remove linha vazia inicial e posiciona cursor
   normal! ggdd
+  normal! 4j
   
-  " Posiciona cursor no início
-  normal! gg
+  " Configurações de buffer
+  setlocal nomodifiable
+  setlocal signcolumn=no
+  setlocal cursorline
 endfunction
 
 " Comandos do usuário (CORRIGIDOS - nomes com maiúscula)
