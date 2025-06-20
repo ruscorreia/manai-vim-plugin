@@ -8,6 +8,14 @@ if exists('g:loaded_manai_vim') || &compatible
 endif
 let g:loaded_manai_vim = 1
 
+" Verifica se curl está instalado
+if !executable('curl')
+  echohl ErrorMsg
+  echomsg 'manai-vim requer curl instalado no sistema'
+  echohl None
+  finish
+endif
+
 " Configurações padrão
 let g:manai_api_url = get(g:, 'manai_api_url', 'https://manai-agent-function-app.azurewebsites.net/api')
 let g:manai_api_key = get(g:, 'manai_api_key', '58H0KD8feP9x2e6uqY1wkwW-6MqwrNkWI6U4-jdsSa5EAzFuACdqNA==')
@@ -87,29 +95,35 @@ endfunction
 
 " Função para fazer requisições HTTP sem dependências externas
 function! s:HttpRequest(url, data, headers)
-  " Implementação usando curl como fallback
   let temp_file = tempname()
   let data_file = tempname()
   
   " Escreve dados JSON no arquivo temporário
-  let json_data = '{"Question": "' . escape(a:data.Question, '"') . '", "language": "' . a:data.language . '"}'
+  let json_data = json_encode(a:data)
   call writefile([json_data], data_file)
   
-  " Monta comando curl
-  let curl_cmd = 'curl -s -X POST'
+  " Monta comando curl com timeout
+  let curl_cmd = 'curl -s -X POST --max-time 30'
   let curl_cmd .= ' -H "Content-Type: application/json"'
   
-  " Adiciona headers de autorização se disponível
-  if has_key(a:headers, 'Authorization')
-    let curl_cmd .= ' -H "Authorization: ' . a:headers.Authorization . '"'
-  endif
+  " Adiciona headers
+  for [key, value] in items(a:headers)
+    let curl_cmd .= ' -H "' . key . ': ' . escape(value, '"') . '"'
+  endfor
   
   let curl_cmd .= ' -d @' . data_file
   let curl_cmd .= ' "' . a:url . '"'
-  let curl_cmd .= ' > ' . temp_file . ' 2>/dev/null'
+  let curl_cmd .= ' > ' . temp_file . ' 2>&1'
   
   " Executa requisição
-  call system(curl_cmd)
+  let exit_code = system(curl_cmd)
+  
+  " Verifica se houve erro no comando curl
+  if v:shell_error != 0
+    call delete(temp_file)
+    call delete(data_file)
+    throw 'Erro na requisição HTTP (curl): ' . exit_code
+  endif
   
   " Lê resposta
   let response = ''
@@ -126,21 +140,34 @@ endfunction
 
 " Função para parsing simples de JSON
 function! s:ParseJsonResponse(json_string)
-  let result = {}
-  
-  " Extrai campo 'answer'
-  let answer_match = matchstr(a:json_string, '"answer":\s*"\zs[^"]*\ze"')
-  if !empty(answer_match)
-    let result.answer = answer_match
-  endif
-  
-  " Extrai campo 'error'
-  let error_match = matchstr(a:json_string, '"error":\s*"\zs[^"]*\ze"')
-  if !empty(error_match)
-    let result.error = error_match
-  endif
-  
-  return result
+  try
+    " Substitui caracteres de escape antes do parsing
+    let json_string = substitute(a:json_string, '\\n', '\n', 'g')
+    let json_string = substitute(json_string, '\\"', '"', 'g')
+    let json_string = substitute(json_string, '\\t', '\t', 'g')
+    
+    " Implementação mais robusta de parsing JSON
+    if exists('*json_decode')
+      return json_decode(json_string)
+    else
+      " Fallback para parsing simples melhorado
+      let result = {}
+      let answer_match = matchstr(json_string, '"answer":\s*"\zs[^"]*\ze"')
+      if !empty(answer_match)
+        let result.answer = substitute(answer_match, '\\n', '\n', 'g')
+      endif
+      
+      let error_match = matchstr(json_string, '"error":\s*"\zs[^"]*\ze"')
+      if !empty(error_match)
+        let result.error = error_match
+      endif
+      
+      return result
+    endif
+  catch /.*/
+    call s:ShowMessage('error', 'Erro ao processar resposta JSON: ' . v:exception)
+    return {'error': 'Resposta inválida da API'}
+  endtry
 endfunction
 
 " Função principal de requisição
@@ -183,7 +210,7 @@ function! s:ManaiAsk(query, ...)
       call s:ShowMessage('error', response.error)
       return ''
     elseif has_key(response, 'answer')
-      call s:ShowMessage('success', 'Resposta recebida!')
+      call s:ShowMessage('success', 'Resposta recebida! Pressione ENTER e :q para fechar a janela do Manai')
       return response.answer
     else
       call s:ShowMessage('error', 'Resposta inválida da API')
@@ -250,8 +277,19 @@ function! s:ManaiShowResponse(response)
   
   call s:ManaiOpenWindow()
   
-  " Adiciona cabeçalho
-  call append(0, ['# Resposta do ManAI', '', '🤖 ' . a:response, ''])
+  " Limpa o buffer
+  %delete _
+  
+  " Adiciona cabeçalho e resposta formatada
+  call append(0, ['# Resposta do ManAI', ''])
+  
+  " Divide a resposta em linhas e adiciona ao buffer
+  let lines = split(a:response, '\n')
+  for line in lines
+    call append(line('$'), '🤖 ' . line)
+  endfor
+  
+  call append(line('$'), '')
   
   " Remove linha vazia inicial
   normal! ggdd
