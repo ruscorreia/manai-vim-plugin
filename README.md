@@ -8,7 +8,7 @@ Plugin Vim/Neovim para integração com a API ManAI, proporcionando acesso diret
 
 - Tem que ter o manai instalado   [manai](https://github.com/ruscorreia/manai.git)
 
-- Login no manai anter de abrir o vim
+- Tem que fazer Login no manai antes de abrir o vim
 ```bash
 $ manai --login
 ```
