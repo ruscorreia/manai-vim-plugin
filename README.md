@@ -4,6 +4,15 @@
 
 Plugin Vim/Neovim para integração com a API ManAI, proporcionando acesso direto ao assistente de IA diretamente do seu editor.
 
+## ✨ Requisitos
+
+- Tem que ter o manai instalado   [manai](https://github.com/ruscorreia/manai.git)
+
+- Login no manai anter de abrir o vim
+```bash
+$ manai --login
+```
+
 ## ✨ Funcionalidades
 
 - Consulta rápida ao ManAI via comando `:Manai`
@@ -35,33 +44,6 @@ Esta versão corrige os seguintes problemas da versão original:
 curl -fsSL https://raw.githubusercontent.com/ruscorreia/manai-vim-plugin/main/install.sh | bash
 ```
 
-### Instalação Manual
-
-#### Requisitos
-- Vim (8.0+) ou Neovim (0.5+)
-- [vim-plug](https://github.com/junegunn/vim-plug) (instalado automaticamente)
-- curl (para requisições HTTP)
-
-#### Via vim-plug
-Adicione ao seu vimrc/init.vim:
-
-```vim
-call plug#begin()
-Plug 'https://github.com/ruscorreia/manai-vim-plugin.git'
-call plug#end()
-
-" Configurações opcionais
-let g:manai_theme = 'material'  " temas: material, dracula, nord
-let g:manai_enable_floating = 1  " janelas flutuantes no Neovim
-
-" Mapeamentos recomendados
-nmap <leader>ma :Manai 
-vmap <leader>ma :ManaiVisual<CR>
-nmap <leader>mw :ManAIOpen<CR>
-```
-
-Depois execute `:PlugInstall` no Vim.
-
 ## 🚀 Uso
 
 ### Comandos Principais
@@ -90,6 +72,33 @@ let g:manai_theme = 'dracula'  " ou 'nord', 'material'
 " Usar token personalizado (opcional)
 :ManAISetToken seu_token_jwt_aqui
 ```
+
+### Instalação Manual
+
+#### Requisitos
+- Vim (8.0+) ou Neovim (0.5+)
+- [vim-plug](https://github.com/junegunn/vim-plug) (instalado automaticamente)
+- curl (para requisições HTTP)
+
+#### Via vim-plug
+Adicione ao seu vimrc/init.vim:
+
+```vim
+call plug#begin()
+Plug 'https://github.com/ruscorreia/manai-vim-plugin.git'
+call plug#end()
+
+" Configurações opcionais
+let g:manai_theme = 'material'  " temas: material, dracula, nord
+let g:manai_enable_floating = 1  " janelas flutuantes no Neovim
+
+" Mapeamentos recomendados
+nmap <leader>ma :Manai 
+vmap <leader>ma :ManaiVisual<CR>
+nmap <leader>mw :ManAIOpen<CR>
+```
+
+Depois execute `:PlugInstall` no Vim.
 
 ## 🎨 Temas Disponíveis
 
