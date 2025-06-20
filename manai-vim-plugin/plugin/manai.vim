@@ -1,6 +1,6 @@
 " manai-vim - Plugin de integração com ManAI para Vim/Neovim
 " Version: 1.2.0 (Corrigido)
-" Author: Rui Correia
+" Author: Rosario Correia
 " License: MIT
 
 if exists('g:loaded_manai_vim') || &compatible
