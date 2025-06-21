@@ -1,4 +1,4 @@
-# ManAI Vim Plugin - Versão Melhorada
+# ManAI Vim Plugin
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Vim](https://img.shields.io/badge/Vim-8.0%2B-green.svg)](https://www.vim.org/)
