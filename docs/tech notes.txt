@@ -25,3 +25,7 @@ grep: Texto.txt: No such file or directory
 ./.vim/plugged/manai-vim-plugin/manai-vim-plugin/docs/tutorial.md
 ./manai/install/README_manai_v2.md
 ./manai/README-pt.md
+
+
+vim ./.vim/plugged/manai-vim-plugin/manai-vim-plugin/plugin/manai.vim
+:set ff=unix
