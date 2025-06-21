@@ -26,7 +26,7 @@ let g:manai_api_url = get(g:, 'manai_api_url', 'https://manai-agent-function-app
 let g:manai_api_key = get(g:, 'manai_api_key', '58H0KD8feP9x2e6uqY1wkwW-6MqwrNkWI6U4-jdsSa5EAzFuACdqNA==')
 let g:manai_token = get(g:, 'manai_token', '')
 let g:manai_theme = get(g:, 'manai_theme', 'material')
-let g:manai_max_tokens = get(g:, 'manai_max_tokens', 1500)
+let g:manai_max_tokens = get(g:, 'manai_max_tokens', 40000)
 let g:manai_enable_floating = get(g:, 'manai_enable_floating', has('nvim') ? 1 : 0)
 let g:manai_config_file = get(g:, 'manai_config_file', expand('~/.config/manai/config.json'))
 
@@ -221,6 +221,19 @@ function! s:ParseJsonResponse(json_string)
     endif
   endif
 
+  " Fallback robusto para respostas muito longas
+  if !has_key(result, 'answer') && !has_key(result, 'error')
+    " Tenta pegar todo o conteúdo entre aspas
+    let matches = matchlist(a:json_string, '"\(.*\)"')
+    if !empty(matches) && len(matches) > 1
+      let full_content = matches[1]
+      let result.answer = substitute(full_content, '\\n', '\n', 'g')
+    else
+      " Se tudo falhar, retorna a resposta crua (pode ser markdown/plain text)
+      let result.answer = a:json_string
+    endif
+  endif
+
   return result
 endfunction
 
@@ -361,27 +374,41 @@ function! s:ManaiShowResponse(response)
     return
   endif
   
-  call s:ManaiOpenWindow()
+  " Cria a janela
+  let buf = s:ManaiOpenWindow()
   
   " Limpa o buffer
-  %delete _
+  silent %delete _
+  
+  " Configurações do buffer
+  setlocal modifiable
+  setlocal noreadonly
   
   " Adiciona cabeçalho e resposta formatada
-  call append(0, ['# Resposta do ManAI', ''])
+  call append(0, ['# Resposta do ManAI. :q para sair', ''])
   
-  " Divide a resposta em linhas e adiciona ao buffer
-  let lines = split(a:response, '\n')
-  for line in lines
-    call append(line('$'), '🤖 ' . line)
-  endfor
+  " Processa a resposta para garantir quebra de linhas adequadas
+  let response_lines = split(a:response, '\n')
   
-  call append(line('$'), '')
+  " Adiciona linhas ao buffer
+  call setline(3, response_lines)
   
-  " Remove linha vazia inicial
-  normal! ggdd
+  " Remove linhas vazias extras no final
+  while getline('$') == ''
+    $delete _
+  endwhile
+  
+  " Configurações finais do buffer
+  setlocal nomodifiable
+  setlocal readonly
+  setlocal wrap
+  setlocal linebreak
   
   " Posiciona cursor no início
   normal! gg
+
+  " Ativa quebra de linha para melhor legibilidade
+  setlocal wrap
 endfunction
 
 " Comandos do usuário (CORRIGIDOS - nomes com maiúscula)
@@ -426,5 +453,3 @@ call s:LoadConfig()
 
 " Mensagem de carregamento
 call s:ShowMessage('info', 'Plugin ManAI carregado com sucesso!')
-
-
