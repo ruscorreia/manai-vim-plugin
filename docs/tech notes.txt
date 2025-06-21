@@ -1,0 +1,27 @@
+grep -rl 'manai' . | xargs grep -lE 'vim|plugin'
+
+./.viminfo
+./.bash_history
+./.vim/plugged/manai-vim-plugin/.git/config
+./.vim/plugged/manai-vim-plugin/.git/logs/refs/heads/main
+./.vim/plugged/manai-vim-plugin/.git/logs/refs/remotes/origin/HEAD
+./.vim/plugged/manai-vim-plugin/.git/logs/HEAD
+./.vim/plugged/manai-vim-plugin/.git/index
+./.vim/plugged/manai-vim-plugin/uninstall.sh
+./.vim/plugged/manai-vim-plugin/README.md
+./.vim/plugged/manai-vim-plugin/install.sh
+./.vim/plugged/manai-vim-plugin/plugin/manai.vim
+./.vim/plugged/manai-vim-plugin/docs/tutorial.md
+grep: ./.vim/plugged/manai-vim-plugin/docs/Novo: No such file or directory
+grep: Documento: No such file or directory
+grep: de: No such file or directory
+grep: Texto.txt: No such file or directory
+./.vim/plugged/manai-vim-plugin/docs/Unisnstall.md
+./.vim/plugged/manai-vim-plugin/manai-vim-plugin/nstall.sh
+./.vim/plugged/manai-vim-plugin/manai-vim-plugin/uninstall.sh
+./.vim/plugged/manai-vim-plugin/manai-vim-plugin/README.md
+./.vim/plugged/manai-vim-plugin/manai-vim-plugin/install.sh
+./.vim/plugged/manai-vim-plugin/manai-vim-plugin/plugin/manai.vim
+./.vim/plugged/manai-vim-plugin/manai-vim-plugin/docs/tutorial.md
+./manai/install/README_manai_v2.md
+./manai/README-pt.md

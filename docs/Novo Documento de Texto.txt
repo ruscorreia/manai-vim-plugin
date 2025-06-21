@@ -1,1 +1,0 @@
-grep -rl 'manai' . | xargs grep -lE 'vim|plugin'
